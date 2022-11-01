@@ -4,9 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-DEFAULT_ITERATIONS = 500
-DEFAULT_ROWS = 3
-DEFAULT_COLS = 3
+DEFAULT_ITERATIONS = 10000
+DEFAULT_ROWS = 20
+DEFAULT_COLS = 20
 STABLIZING_PERIOD = 4
 
 NO_REPEAT = -1
@@ -14,39 +14,6 @@ UNSTABLE = -2
 TOO_SHORT = -3
 CON_DECLINE = -4
 INVALID = -5
-
-
-class RunData:
-    def extractMinBeforeMax(self, history, maxSizeI):
-        min = float('inf')
-        minIndex = 0
-        for i in range(maxSizeI):
-            curr = np.count_nonzero(history[i])
-            if min > curr:
-                min = curr
-                minIndex = i
-
-        return minIndex if np.count_nonzero(history[0]) < np.count_nonzero(history[maxSizeI]) else CON_DECLINE
-
-    def __init__(self, history, repeatI, maxSizeI, minSizeI):
-        self.maxSizeI = maxSizeI
-        self.minSizeI = minSizeI
-        self.maxSize = np.count_nonzero(history[maxSizeI])
-        self.minSize = np.count_nonzero(history[minSizeI])
-        self.runLength = len(history)
-        self.runLengthTillLoop = repeatI
-        self.loopLength = len(history) - repeatI - 1
-        self.loopConfig = history[repeatI]
-        self.startConfig = history[0]
-        self.endConfig = history[-1]
-        self.minSizeConfig = history[minSizeI]
-        self.maxSizeConfig = history[maxSizeI]
-        self.minSizeBeforeMaxI = minSizeI if minSizeI < maxSizeI else self.extractMinBeforeMax(history, maxSizeI)
-        self.minSizeConfigBeforeMax = history[self.minSizeBeforeMaxI] if self.minSizeBeforeMaxI != CON_DECLINE else CON_DECLINE
-        self.minSizeBeforeMax = np.count_nonzero(history[self.minSizeBeforeMaxI]) if self.minSizeBeforeMaxI != CON_DECLINE else CON_DECLINE
-        self.increaseTime = maxSizeI - self.minSizeBeforeMaxI if self.minSizeBeforeMaxI != CON_DECLINE else CON_DECLINE
-        self.increaseVolume = np.count_nonzero(self.maxSizeConfig) - np.count_nonzero(self.minSizeConfigBeforeMax) if self.minSizeBeforeMaxI != CON_DECLINE else CON_DECLINE
-        self.sizes = [np.count_nonzero(c) for c in history]
 
 
 
@@ -95,30 +62,53 @@ def runRandom(iterations = DEFAULT_ITERATIONS, rows = DEFAULT_ROWS, cols = DEFAU
     grid, gridCpy = start(rows, cols)
     startConfig = grid.copy()
     history.append(startConfig)
-    maxSize = 0
-    maxSizeIndex = 0
-    minSize = float('inf')
-    minSizeIndex = 0
     for i in range(1, iterations):
         nextConfig = gameStep(grid, gridCpy)
-        len = np.count_nonzero(nextConfig)
-        if i > STABLIZING_PERIOD:
-            if maxSize < len:
-                maxSize = len
-                maxSizeIndex = i
-            if minSize > len:
-                minSize = len
-                minSizeIndex = i
         repeatedConfigIndex = compareHistory(history, nextConfig)
         if(repeatedConfigIndex != NO_REPEAT):
-            if(i > STABLIZING_PERIOD):
-                return RunData(history, repeatedConfigIndex, maxSizeIndex, minSizeIndex)
-            else:
-                return TOO_SHORT, startConfig, history
+            return processGame(history)
+
         history.append(nextConfig.copy())
 
 
     return UNSTABLE, startConfig, history
+
+
+class RunData:
+    def __init__(self, history, sizes, maxI, minI, maxIncrease, maxIncreaseStart, maxIncreaseEnd):
+        self.history = history
+        self.sizes = sizes
+        self.maxI = maxI
+        self.minI = minI
+        self.maxIncrease = maxIncrease
+        self.maxIncreaseStart = maxIncreaseStart
+        self.maxIncreaseEnd = maxIncreaseEnd
+        
+    
+def processGame(history):
+    sizes = [np.count_nonzero(c) for c in history]
+    maxI = 0
+    max = 0
+    minI = 0
+    min = float('inf')
+    maxIncrease = 0
+    maxIncreaseStart = 0
+    maxIncreaseEnd = 0
+
+    for i in range(len(sizes)):
+        increase = sizes[i] - min
+        if increase > maxIncrease:
+            maxIncrease = increase
+            maxIncreaseStart = minI
+            maxIncreaseEnd = i
+        if sizes[i] > max:
+            max = i
+            maxI = i
+        if sizes[i] < min:
+            min = sizes[i]
+            minI = i
+
+    return RunData(history, sizes, maxI, minI, maxIncrease, maxIncreaseStart, maxIncreaseEnd)
     
 
 
@@ -134,43 +124,30 @@ def runRandom(iterations = DEFAULT_ITERATIONS, rows = DEFAULT_ROWS, cols = DEFAU
 
 
 
-
-
-res = runRandom(iterations = 500, rows = 7, cols = 7)
-
 # tests
 def runRandomTest1():
     res = runRandom(iterations = 500, rows = 7, cols = 7)
     if type(res) == RunData:
-        assert(res.maxSizeI > STABLIZING_PERIOD or res.maxSizeI == 0)
-        assert(res.minSizeI > STABLIZING_PERIOD or res.minSizeI == 0)
-        assert(np.count_nonzero(res.maxSizeConfig) > 0 or res.maxSizeI == 0)
-        assert(np.count_nonzero(res.minSizeConfig) < float('inf')or res.minSizeI == 0)
-        if res.minSizeBeforeMaxI != CON_DECLINE:
-            assert(np.count_nonzero(res.minSizeConfigBeforeMax) <= np.count_nonzero(res.maxSizeConfig))
-            assert(np.count_nonzero(res.minSizeConfigBeforeMax) <= np.count_nonzero(res.minSizeConfigBeforeMax))
-            assert(res.increaseTime >= 0)
-            assert(res.increaseVolume >= 0)
+        assert(res.maxIncrease >= 0)
+        assert(res.maxIncreaseStart <= res.maxIncreaseEnd)
+    else:
+        assert(res[0] == UNSTABLE)
+        assert (len(res[2] == 500)) # assert all iterations were saved
 
 def runRandomTest2():
-    res = runRandom(iterations = 500, rows = 7, cols = 7)
+    res = runRandom(iterations = 5, rows = 7, cols = 7)
     if type(res) == RunData:
-        endCnf = res.endConfig.copy()
-        endCnfCpy = res.endConfig.copy()
-        for i in range(res.loopLength):
-            nextCnf = gameStep(endCnf, endCnfCpy)
-        assert((nextCnf == res.loopConfig).all())
+        assert(res.maxIncrease >= 0)
+        assert(res.maxIncreaseStart <= res.maxIncreaseEnd)
+    else:
+        assert(res[0] == UNSTABLE)
+        assert(len(res[2]) == 5) # assert all iterations were saved
 
-def runRandomTest3():
-    res = runRandom(iterations = 20, rows = 20, cols = 20)
-    if type(res) != RunData:
-        assert(res[0] == UNSTABLE or (res[0] == TOO_SHORT and len(res[2]) < STABLIZING_PERIOD))
 
         
 
 runRandomTest1()
 runRandomTest2()
-runRandomTest3()
 
 
 
@@ -182,11 +159,9 @@ pool = []
 for i in range(60):
     run = runRandom()
     if type(run) == RunData:
-        pool.append()
+        pool.append(run)
 
-pool.sort(key=lambda data: data.increaseVolume)
+pool.sort(key=lambda data: data.maxIncrease)
 for v in pool:
-    print (v.increaseVolume)
-    plt.imshow(v.minSizeConfig)
-    plt.imshow(v.maxSizeConfig)
+    print (v.maxIncrease)
 
