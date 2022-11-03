@@ -5,7 +5,7 @@ import random
 import matplotlib.pyplot as plt
 import time
 
-GENERATION_SIZE = 60
+GENERATION_SIZE = 5
 VERTICAL = "VERTICAL"
 HORIZONTAL = "HORIZONTAL"
 IN_OUT = "IN_OUT"
@@ -78,7 +78,7 @@ relMaxIncreaseStats.append(np.mean([run.relMaxIncrease for run in pool]))
 
 pool.sort(key=lambda data: data.relMaxIncrease)
 
-for i in range(20):
+for i in range(100):
     nextGen = getNextGen(pool)
     pool = []
     for g in nextGen:

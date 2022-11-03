@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import random
 
 DEFAULT_ITERATIONS = 200
-DEFAULT_ROWS = 20
-DEFAULT_COLS = 20
+DEFAULT_ROWS = 30
+DEFAULT_COLS = 30
 STABLIZING_PERIOD = 4
 
 NO_REPEAT = -1
