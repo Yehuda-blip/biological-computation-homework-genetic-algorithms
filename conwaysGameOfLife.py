@@ -4,9 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-DEFAULT_ITERATIONS = 10000
-DEFAULT_ROWS = 20
-DEFAULT_COLS = 20
+DEFAULT_ITERATIONS = 500
+DEFAULT_ROWS = 30
+DEFAULT_COLS = 30
 STABLIZING_PERIOD = 4
 
 NO_REPEAT = -1
@@ -73,9 +73,25 @@ def runRandom(iterations = DEFAULT_ITERATIONS, rows = DEFAULT_ROWS, cols = DEFAU
 
     return UNSTABLE, startConfig, history
 
+def run(grid, iterations):
+    history = []
+    gridCpy = grid.copy()
+    startConfig = grid.copy()
+    history.append(startConfig)
+    for i in range(1, iterations):
+        nextConfig = gameStep(grid, gridCpy)
+        repeatedConfigIndex = compareHistory(history, nextConfig)
+        if(repeatedConfigIndex != NO_REPEAT):
+            return processGame(history)
+
+        history.append(nextConfig.copy())
+
+
+    return UNSTABLE, startConfig, history
+
 
 class RunData:
-    def __init__(self, history, sizes, maxI, minI, maxIncrease, maxIncreaseStart, maxIncreaseEnd):
+    def __init__(self, history, sizes, maxI, minI, maxIncrease, maxIncreaseStart, maxIncreaseEnd, relMaxIncrease):
         self.history = history
         self.sizes = sizes
         self.maxI = maxI
@@ -83,6 +99,7 @@ class RunData:
         self.maxIncrease = maxIncrease
         self.maxIncreaseStart = maxIncreaseStart
         self.maxIncreaseEnd = maxIncreaseEnd
+        self.relMaxIncrease = relMaxIncrease
         
     
 def processGame(history):
@@ -92,6 +109,7 @@ def processGame(history):
     minI = 0
     min = float('inf')
     maxIncrease = 0
+    relMaxIncrease = 0
     maxIncreaseStart = 0
     maxIncreaseEnd = 0
 
@@ -108,7 +126,9 @@ def processGame(history):
             min = sizes[i]
             minI = i
 
-    return RunData(history, sizes, maxI, minI, maxIncrease, maxIncreaseStart, maxIncreaseEnd)
+    relMaxIncrease = np.count_nonzero(history[maxIncreaseEnd]) / np.max([np.count_nonzero(history[maxIncreaseStart]), 1])
+
+    return RunData(history, sizes, maxI, minI, maxIncrease, maxIncreaseStart, maxIncreaseEnd, relMaxIncrease)
     
 
 
@@ -144,24 +164,22 @@ def runRandomTest2():
         assert(len(res[2]) == 5) # assert all iterations were saved
 
 
+def runRandomTest3():
+    res = runRandom(iterations = 5, rows = 7, cols = 7)
+    if type(res) == RunData:
+        history = res.history
+    else:
+        history = res[2]
+    for c in history:
+        for i in range(0, len(c)):
+            assert(c[i, 0] == 0)
+            assert(c[i, len(c) - 1] == 0)
+        for j in range(0, len(c[0])):
+            assert(c[0, j] == 0)
+            assert(c[len(c[0]) - 1, j] == 0)
         
 
 runRandomTest1()
 runRandomTest2()
-
-
-
-
-
-
-# main
-pool = []
-for i in range(60):
-    run = runRandom()
-    if type(run) == RunData:
-        pool.append(run)
-
-pool.sort(key=lambda data: data.maxIncrease)
-for v in pool:
-    print (v.maxIncrease)
+runRandomTest3()
 
