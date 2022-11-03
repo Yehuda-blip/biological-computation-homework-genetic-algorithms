@@ -5,7 +5,7 @@ import random
 import matplotlib.pyplot as plt
 import time
 
-GENERATION_SIZE = 100
+GENERATION_SIZE = 60
 VERTICAL = "VERTICAL"
 HORIZONTAL = "HORIZONTAL"
 IN_OUT = "IN_OUT"
@@ -66,21 +66,28 @@ def generateIndividual(pool, lottery):
 
     return child
 
+relMaxIncreaseStats = []
+
 pool = []
 for i in range(GENERATION_SIZE):
     run = gol.runRandom()
     if type(run) == gol.RunData:
         pool.append(run)
 
+relMaxIncreaseStats.append(np.mean([run.relMaxIncrease for run in pool]))
+
 pool.sort(key=lambda data: data.relMaxIncrease)
 
-for i in range(6):
+for i in range(20):
     nextGen = getNextGen(pool)
     pool = []
     for g in nextGen:
         run = gol.run(g, gol.DEFAULT_ITERATIONS)
         if type(run) == gol.RunData:
             pool.append(run)
+    
+    
+    relMaxIncreaseStats.append( np.mean([run.relMaxIncrease for run in pool]))
 
 best = 0
 max = 0
@@ -92,6 +99,11 @@ for v in pool:
 with open("best_configuration", 'w') as file:
     file.write(str(best.history[best.maxIncreaseStart]))
 
+plt.plot(relMaxIncreaseStats)
+plt.show()
+
 for i in range(len(best.history)):
     plt.imshow(best.history[i])
-    plt.show(block=True)
+    plt.pause(0.25)
+
+#plt.show()
