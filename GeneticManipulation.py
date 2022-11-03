@@ -5,7 +5,8 @@ import random
 import matplotlib.pyplot as plt
 import time
 
-GENERATION_SIZE = 5
+GENERATION_SIZE = 10
+GENERATIONS = 100
 VERTICAL = "VERTICAL"
 HORIZONTAL = "HORIZONTAL"
 IN_OUT = "IN_OUT"
@@ -22,7 +23,7 @@ def getNextGen(pool):
     lottery = []
     for i in range(len(pool)):
         increase = int(pool[i].relMaxIncrease)
-        lottery += increase * [i]
+        lottery += (increase ** 2) * [i]
     
     nextGen = []
     for i in range(GENERATION_SIZE):
@@ -67,6 +68,7 @@ def generateIndividual(pool, lottery):
     return child
 
 relMaxIncreaseStats = []
+runTimeStats = []
 
 pool = []
 for i in range(GENERATION_SIZE):
@@ -74,20 +76,31 @@ for i in range(GENERATION_SIZE):
     if type(run) == gol.RunData:
         pool.append(run)
 
+startbest = 0
+max = 0
+for v in pool:
+    if v.relMaxIncrease > max:
+        max = v.relMaxIncrease
+        startbest = v
+
 relMaxIncreaseStats.append(np.mean([run.relMaxIncrease for run in pool]))
+runTimeStats.append(np.mean([len(run.history) for run in pool]))
 
 pool.sort(key=lambda data: data.relMaxIncrease)
 
-for i in range(100):
+for i in range(GENERATIONS):
+    print("start gen " + str(i + 1))
+    gol.MIN_HISTORY_LENGTH += 1
     nextGen = getNextGen(pool)
     pool = []
     for g in nextGen:
         run = gol.run(g, gol.DEFAULT_ITERATIONS)
         if type(run) == gol.RunData:
-            pool.append(run)
+            pool.append(run) 
     
     
     relMaxIncreaseStats.append( np.mean([run.relMaxIncrease for run in pool]))
+    runTimeStats.append(np.mean([len(run.history) for run in pool]))
 
 best = 0
 max = 0
@@ -100,10 +113,20 @@ with open("best_configuration", 'w') as file:
     file.write(str(best.history[best.maxIncreaseStart]))
 
 plt.plot(relMaxIncreaseStats)
-plt.show()
+plt.title("mean increase in size over time in every generation")
+plt.show(block = True)
+plt.plot(runTimeStats)
+plt.title("mean increase in run time in every generation")
+plt.show(block = True)
+
+
+# for i in range(startbest.maxIncreaseStart, len(startbest.history)):
+#     plt.imshow(startbest.history[i])
+#     plt.pause(0.25)
 
 for i in range(len(best.history)):
     plt.imshow(best.history[i])
-    plt.pause(0.25)
+    plt.pause(0.05)
+    plt.clf()
 
 #plt.show()

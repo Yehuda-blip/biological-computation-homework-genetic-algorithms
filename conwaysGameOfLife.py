@@ -4,9 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
+MIN_HISTORY_LENGTH = 0
 DEFAULT_ITERATIONS = 200
-DEFAULT_ROWS = 30
-DEFAULT_COLS = 30
+DEFAULT_ROWS = 20
+DEFAULT_COLS = 20
 STABLIZING_PERIOD = 4
 
 NO_REPEAT = -1
@@ -49,42 +50,55 @@ def count(i , j, grid):
                 c += 1
     return c
 
-def compareHistory(history, current):
-    for i in range(len(history)):
-        equalIndices = history[i] == current
-        if equalIndices.all():
-            return i
+# def compareHistory(history, current):
+#     for i in range(len(history)):
+#         equalIndices = history[i] == current
+#         if equalIndices.all():
+#             return i
     
-    return NO_REPEAT
+#     return NO_REPEAT
+def asString(config):
+    string = ""
+    for i in range(len(config)):
+        for j in range(len(config[0])):
+            string += "1" if config[i, j] else "0"
+    return string
 
 def runRandom(iterations = DEFAULT_ITERATIONS, rows = DEFAULT_ROWS, cols = DEFAULT_COLS):
     history = []
+    historyHashSet = set()
     grid, gridCpy = start(rows, cols)
-    startConfig = grid.copy()
-    history.append(startConfig)
-    for i in range(1, iterations):
-        nextConfig = gameStep(grid, gridCpy)
-        repeatedConfigIndex = compareHistory(history, nextConfig)
-        if(repeatedConfigIndex != NO_REPEAT):
-            return processGame(history)
+    return run(grid, iterations)
+    # startConfig = grid.copy()
+    # history.append(startConfig)
+    # historyHashSet.add(asString(startConfig))
+    # for i in range(1, iterations):
+    #     nextConfig = gameStep(grid, gridCpy)
+    #     cnfAsString = asString(nextConfig)
+    #     if(cnfAsString in historyHashSet):
+    #         return processGame(history)
 
-        history.append(nextConfig.copy())
+    #     history.append(nextConfig.copy())
+    #     historyHashSet.add(cnfAsString)
 
 
-    return UNSTABLE, startConfig, history
+    # return UNSTABLE, startConfig, history
 
 def run(grid, iterations):
     history = []
+    historyHashSet = set()
     gridCpy = grid.copy()
     startConfig = grid.copy()
     history.append(startConfig)
+    historyHashSet.add(asString(startConfig))
     for i in range(1, iterations):
         nextConfig = gameStep(grid, gridCpy)
-        repeatedConfigIndex = compareHistory(history, nextConfig)
-        if(repeatedConfigIndex != NO_REPEAT):
+        cnfAsString = asString(nextConfig)
+        if(cnfAsString in historyHashSet):
             return processGame(history)
 
         history.append(nextConfig.copy())
+        historyHashSet.add(cnfAsString)
 
 
     return UNSTABLE, startConfig, history
@@ -152,7 +166,7 @@ def runRandomTest1():
         assert(res.maxIncreaseStart <= res.maxIncreaseEnd)
     else:
         assert(res[0] == UNSTABLE)
-        assert (len(res[2] == 500)) # assert all iterations were saved
+        assert (len(res[2]) == 500) # assert all iterations were saved
 
 def runRandomTest2():
     res = runRandom(iterations = 5, rows = 7, cols = 7)
