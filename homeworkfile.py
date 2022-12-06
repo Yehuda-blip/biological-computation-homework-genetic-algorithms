@@ -28,4 +28,5 @@ res = gol.run(config, gol.DEFAULT_ITERATIONS)
 
 for i in range(len(res.history)):
     plt.imshow(res.history[i])
-    plt.pause(0.25)
+    plt.pause(0.05)
+    plt.clf()
